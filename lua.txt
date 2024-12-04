@@ -1,0 +1,42 @@
+local HttpService = game:GetService("HttpService")
+local Player = game.Players.LocalPlayer
+
+-- Adres API, które zwraca status bana
+local API_URL = "https://-----.onrender.com/ban-status/"  -- np. http://localhost:8000/ban-status/
+
+-- Funkcja, która sprawdza, czy gracz jest zbanowany
+local function checkBanStatus(playerId)
+	local url = API_URL .. playerId
+	local success, response = pcall(function()
+		return HttpService:GetAsync(url)
+	end)
+
+	if success then
+		local data = HttpService:JSONDecode(response)
+		if data.banned then
+			-- Jeśli gracz jest zbanowany, zwróć true, powód i czas zakończenia bana
+			local endTime = data.end_time or "Brak daty zakończenia"
+			return true, data.reason, endTime
+		else
+			return false
+		end
+	else
+		warn("Błąd w połączeniu z API: " .. response)
+		return false
+	end
+end
+
+-- Główna funkcja, która będzie sprawdzać status gracza
+local function onPlayerAdded(player)
+	local robloxId = tostring(player.UserId)
+
+	local isBanned, reason, endTime = checkBanStatus(robloxId)
+
+	if isBanned then
+		-- Jeśli gracz jest zbanowany, wyrzuć go z gry z informacją o powodzie i dacie zakończenia
+		player:Kick("Zostałeś zbanowany z powodu: " .. reason .. "\nBan kończy się: " .. endTime .. ". Zobacz swój powód na banroom!")
+	end
+end
+
+-- Sprawdzenie statusu bana przy dodaniu gracza do gry
+game.Players.PlayerAdded:Connect(onPlayerAdded)

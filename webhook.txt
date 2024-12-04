@@ -1,0 +1,30 @@
+from flask import Flask, jsonify
+from pymongo import MongoClient
+
+# Połączenie z MongoDB
+MONGO_URI = "mongodb+srv://<nazwa>:<haslo>@<nazwaclustera>.uyah9.mongodb.net/?retryWrites=true&w=majority&appName=<nazwaclustera>"
+client = MongoClient(MONGO_URI)
+db = client['bans_db']
+bans_collection = db['bans']
+
+app = Flask(__name__)
+
+# Endpoint do sprawdzania statusu bana
+@app.route("/ban-status/<roblox_id>", methods=["GET"])
+def ban_status(roblox_id):
+    # Szukamy gracza w kolekcji
+    ban = bans_collection.find_one({"roblox_id": roblox_id})
+    if not ban:
+        return jsonify({"banned": False}), 200  # Gracz nie jest zbanowany
+    
+    # Zwracamy informacje o banie
+    return jsonify({
+        "banned": True,
+        "reason": ban.get("reason", "Brak powodu"),
+        "end_time": ban.get("end_time", "Brak daty zakończenia"),
+        "permanent": ban.get("permanent", False)
+    }), 200
+
+if __name__ == "__main__":
+    # Uruchamiamy serwer Flask na porcie 8000
+    app.run(host="0.0.0.0", port=8000)
